@@ -1,26 +1,37 @@
 #![no_std] // don't link the Rust standard library
-#![no_main] // disable all Rust-level entry points
+#![no_main]
+#![feature(custom_test_frameworks)]
+#![test_runner(blog_os::test_runner)]
+#![reexport_test_harness_main = "test_main"]
 
+// disable all Rust-level entry points
 use core::panic::PanicInfo;
-
-static HELLO: &[u8] = b"Hello World!";
+use blog_os::println;
 
 #[no_mangle]
 pub extern "C" fn _start() -> ! {
-    let vga_buffer = 0xb8000 as *mut u8;
+    // for i in 0..64 {
+    //     println!("Hello World{}", i);
+    // }
+    // panic!("Some panic message");
+    println!("Hello World{}", "!");
 
-    for (i, &byte) in HELLO.iter().enumerate() {
-        unsafe {
-            *vga_buffer.offset(i as isize * 2) = byte;
-            *vga_buffer.offset(i as isize * 2 + 1) = 0xb;
-        }
-    }
+    #[cfg(test)]
+    test_main();
 
     loop {}
 }
 
-/// This function is called on panic.
+#[cfg(not(test))] // new attribute
 #[panic_handler]
-fn panic(_info: &PanicInfo) -> ! {
+fn panic(info: &PanicInfo) -> ! {
+    println!("{}", info);
     loop {}
+}
+
+// our panic handler in test mode
+#[cfg(test)]
+#[panic_handler]
+fn panic(info: &PanicInfo) -> ! {
+    blog_os::test_panic_handler(info)
 }
